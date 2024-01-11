@@ -79,9 +79,15 @@ export function sleep(seconds: number) {
   return new Promise((r) => setTimeout(r, sec * 1000));
 }
 
-function pad0(n: number) {
-  if (n < 10) return `0${n}`;
-  return `${n}`;
+export function pad0(n: number, count: number = 2) {
+  const nStr = `${n}`;
+  const length = count - nStr.length;
+  const array = [];
+  for (let i = 0; i < length; i++) {
+    array.push(0);
+  }
+  array.push(n);
+  return array.join("");
 }
 
 export function formatDate(date: Date) {

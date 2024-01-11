@@ -1,7 +1,11 @@
 import { Page } from "playwright-core";
-import { sleep, loadJsonStrawberry } from "./utils";
+import { sleep, loadJsonStrawberry, pad0, formatDate } from "./utils";
 import { sendMail } from "./mail";
 import { rm } from "fs/promises";
+import { join } from "path";
+import { cwd } from "process";
+
+import ExcelJS from "exceljs";
 
 const LOGIN_URL = "http://52.192.132.89:44096/stjamweb/index.jsp";
 
@@ -14,7 +18,37 @@ const SHUUKEI_KEKKA_URL =
 export async function execDL(page: Page) {
   await login(page, LOGIN_URL);
   console.debug("login finished");
-  await download(page);
+  const itemCodes = [1, 2, 4, 5, 6, 9, 10, 11, 12, 13, 15, 16, 17];
+  const workbook = new ExcelJS.Workbook();
+  workbook.title = `商品在庫`;
+
+  for (const itemCode of itemCodes) {
+    const fileInfo = await download(page, pad0(itemCode, 3));
+    if (!fileInfo) continue;
+    const newSheet = workbook.addWorksheet(fileInfo.sheetName);
+    const downloadedXlsx = new ExcelJS.Workbook();
+    await downloadedXlsx.xlsx.readFile(fileInfo.path);
+    const dataSheet = downloadedXlsx.worksheets[0];
+    for (let i = 1; i <= dataSheet.actualRowCount; i++) {
+      const dataRow = dataSheet.getRow(i);
+      const newRow = newSheet.getRow(i);
+
+      for (let j = 1; j <= dataSheet.actualColumnCount; j++) {
+        newRow.getCell(j).value = dataRow.getCell(j).value;
+      }
+    }
+    await rm(fileInfo.path);
+  }
+
+  const filename = `${formatDate(new Date())}-商品在庫.xlsx`;
+  const outputPath = join(cwd(), filename);
+  await workbook.xlsx.writeFile(outputPath);
+
+  await sendMail([{ path: outputPath, filename }]);
+
+  await sleep(2);
+
+  await rm(outputPath);
   console.debug("click download finished");
 }
 
@@ -79,18 +113,34 @@ async function login(page: Page, url: string) {
   await sleep(2);
 }
 
-async function download(page: Page) {
+async function download(page: Page, itemCode: string) {
+  console.info({ itemCode });
   const shuukeiLink = page.locator("div#content a.btnmenu", {
     hasText: "在庫集計",
   });
   await shuukeiLink.click(createClickOption());
   await page.waitForURL(SHUUKEI_KENSAKU_URL);
-  await sleep(3);
+  await sleep(5);
+
+  await page.locator("#vsItemCode1").fill(itemCode, createFillOption());
+  await page.keyboard.press("Tab");
+  await sleep(5);
+  const itemName = await page.locator("#vsItemName1").inputValue();
+  if (!itemName) throw new Error(`${itemCode}の名前が取得できませんでした。`);
 
   await page.locator(`input#bStatistic`).click(createClickOption());
   await page.waitForURL(SHUUKEI_KEKKA_URL);
-  await sleep(3);
+  await sleep(5);
 
+  const itemCount = await page
+    .locator("td[dir=ltr] span#sp_1_page")
+    .innerText();
+  // アイテムがない場合は飛ばす
+  if (itemCount === "0") {
+    await page.locator("div.page_header_line a.backmenu").click();
+    await sleep(5);
+    return null;
+  }
   await page.locator("input[value=書き出し]").click(createClickOption());
   await page.waitForSelector("#ui-id-1");
   await page.locator("#btnAddAllExport").click(createClickOption());
@@ -103,9 +153,10 @@ async function download(page: Page) {
   const download = await downloadPromise;
   const downloadPath = await download.path();
 
-  await sendMail(downloadPath);
+  const sheetName = `${itemCode}-${itemName.replace(/[◆◎●]/g, "")}`;
 
-  await sleep(2);
+  await page.locator("div.page_header_line a.backmenu").click();
+  await sleep(5);
 
-  await rm(downloadPath);
+  return { sheetName: sheetName, path: downloadPath };
 }

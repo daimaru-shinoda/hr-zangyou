@@ -4,14 +4,16 @@ import { MAIL_JSON, loadJsonMail } from "./utils";
 
 const TARGET_MAIL = "shinoda@daimaru-d.jp";
 
-export async function sendMail(filePath: string) {
+export async function sendMail(
+  attachments: { filename: string; path: string }[]
+) {
   const mailJson = loadJsonMail();
   const transporter = nodemailer.createTransport(
     createTransportFromJson(mailJson)
   );
 
   try {
-    const mailDetails = createMailDetails(filePath, mailJson);
+    const mailDetails = createMailDetails(attachments, mailJson);
     const info = await transporter.sendMail(mailDetails);
     console.debug("sendmail success", info);
   } catch (error) {
@@ -35,8 +37,10 @@ function createTransportFromJson(auth: { user: string; pass: string }) {
   };
 }
 
-function createMailDetails(filePath: string, sender: MAIL_JSON) {
-  const attachments = [{ filename: "StockExport.xlsx", path: filePath }];
+function createMailDetails(
+  attachments: { filename: string; path: string }[],
+  sender: MAIL_JSON
+) {
   return {
     from: `ストロベリージャム <${sender.user}>`,
     to: TARGET_MAIL,
