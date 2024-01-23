@@ -18,7 +18,7 @@ const SHUUKEI_KEKKA_URL =
 export async function execDL(page: Page) {
   await login(page, LOGIN_URL);
   console.debug("login finished");
-  const itemCodes = [1, 2, 4, 5, 6, 9, 10, 11, 12, 13, 15, 16, 17];
+  const itemCodes = [1, 2, 4, 5, 6, 9, 10, 11, 12, 13];
   const workbook = new ExcelJS.Workbook();
   workbook.title = `商品在庫`;
 
@@ -127,6 +127,9 @@ async function download(page: Page, itemCode: string) {
   await sleep(5);
   const itemName = await page.locator("#vsItemName1").inputValue();
   if (!itemName) throw new Error(`${itemCode}の名前が取得できませんでした。`);
+
+  await page.locator("#vsBrandCode1").fill("001", createFillOption());
+  await page.locator("#vsBrandCode2").fill("011", createFillOption());
 
   await page.locator(`input#bStatistic`).click(createClickOption());
   await page.waitForURL(SHUUKEI_KEKKA_URL);

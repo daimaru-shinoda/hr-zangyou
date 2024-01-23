@@ -1,7 +1,6 @@
 import { chromium } from "playwright-core";
 import { execDL } from "./strawberry-jam";
 import { sleep, IS_TEST } from "./utils";
-import { argv } from "process";
 
 (async () => {
   console.log("program start!");
