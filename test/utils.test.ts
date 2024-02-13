@@ -1,12 +1,4 @@
-import { loadJsonStrawberry, loadJsonMail, formatDate } from "../src/utils";
-
-describe("loadJsonAndpad", () => {
-  it("should not throw error", () => {
-    const json = loadJsonStrawberry();
-    expect(json.id).toBeDefined();
-    expect(json.password).toBeDefined();
-  });
-});
+import { loadJsonMail, formatDate } from "../src/utils";
 
 describe("loadJsonMail", () => {
   it("should not throw error", () => {

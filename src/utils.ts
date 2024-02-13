@@ -4,18 +4,10 @@ import { load } from "ts-dotenv";
  * 環境変数を読み込む
  */
 export const env = load({
-  STRAWBERRY_JSON: String,
+  ACCESS_TOKEN: String,
   MAIL_JSON: String,
   IS_TEST: String,
 });
-
-/**
- * REINS用設定
- */
-type STRAWBERRY_JSON = {
-  id: string;
-  password: string;
-};
 
 export type MAIL_JSON = {
   user: string;
@@ -26,19 +18,12 @@ export type MAIL_JSON = {
  * 環境設定名
  */
 enum JSON_ENV_NAME {
-  STRAWBERRY = "STRAWBERRY_JSON",
+  ACCESS_TOKEN = "ACCESS_TOKEN",
   MAIL = "MAIL_JSON",
 }
 
 /**
- * ANDPAD用設定JSONを読み込む
- */
-export function loadJsonStrawberry(): STRAWBERRY_JSON {
-  return loadJson(JSON_ENV_NAME.STRAWBERRY) as STRAWBERRY_JSON;
-}
-
-/**
- * ANDPAD用設定JSONを読み込む
+ * MAIL用設定JSONを読み込む
  */
 export function loadJsonMail(): MAIL_JSON {
   return loadJson(JSON_ENV_NAME.MAIL) as MAIL_JSON;
@@ -48,7 +33,7 @@ export function loadJsonMail(): MAIL_JSON {
  * 環境変数名を指定してJSONを読み込む
  * @param envName 環境変数名
  */
-function loadJson(envName: JSON_ENV_NAME): STRAWBERRY_JSON | MAIL_JSON {
+function loadJson(envName: JSON_ENV_NAME): MAIL_JSON {
   const content = env[envName];
   if (!content) throw new Error(`環境変数が設定されてません ${envName}`);
   try {
@@ -69,6 +54,8 @@ function isTest() {
   return env.IS_TEST === "true";
 }
 export const IS_TEST = isTest();
+
+export const ACCESS_TOKEN = env.ACCESS_TOKEN;
 
 /**
  * スリープする
