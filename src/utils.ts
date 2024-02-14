@@ -83,3 +83,21 @@ export function formatDate(date: Date) {
   const day = date.getDate();
   return `${year}-${pad0(month)}-${pad0(day)}`;
 }
+
+export function json2csv(json: any[]) {
+  const keys: string[] = [];
+  for (const row of json) {
+    const rowKeys = Object.keys(row);
+    for (const rowKey of rowKeys) {
+      if (!keys.includes(rowKey)) {
+        keys.push(rowKey);
+      }
+    }
+  }
+
+  const header = keys.join(",") + "\n";
+  const body = json
+    .map((row) => keys.map((key) => row[key]).join(","))
+    .join("\n");
+  return header + body;
+}

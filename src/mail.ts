@@ -42,10 +42,10 @@ function createMailDetails(
   sender: MAIL_JSON
 ) {
   return {
-    from: `ストロベリージャム <${sender.user}>`,
+    from: `勤怠管理 <${sender.user}>`,
     to: TARGET_MAIL,
-    subject: "ストロベリージャム 在庫集計",
-    text: "ストロベリージャム 在庫集計",
+    subject: "勤怠管理",
+    text: "勤怠管理",
     attachments,
   };
 }
