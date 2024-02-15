@@ -1,5 +1,7 @@
 import Decimal from "decimal.js";
 import {
+  getNendo,
+  getTerm,
   parseDivisionsJson,
   parseEmployeeJson,
   parseHolidayDataJson,
@@ -124,6 +126,7 @@ describe("parseWorkingDataJson", () => {
     ];
     const expected = [
       {
+        出勤フラグ: 1,
         日付: "2016-05-01",
         雇用者キー:
           "8b6ee646a9620b286499c3df6918c4888a97dd7bbc6a26a18743f4697a1de4b3",
@@ -271,12 +274,16 @@ describe("parseHolidayDataJson", () => {
           "8b6ee646a9620b286499c3df6918c4888a97dd7bbc6a26a18743f4697a1de4b3",
         "休暇コード-1": 1,
         "休暇タイプ-1": "有休",
-        有休取得日数: 1,
-        有休取得時間: 180,
+        "有休取得日数(日)": 1,
+        "有休取得日数(日)予定込み": 1,
+        "有休取得時間(分)": 180,
+        "有休取得時間(分)予定込み": 180,
         "休暇コード-2": 2,
         "休暇タイプ-2": "代休",
-        代休取得日数: 3,
-        代休取得時間: 120,
+        "代休取得日数(日)": 3,
+        "代休取得日数(日)予定込み": 3,
+        "代休取得時間(分)": 120,
+        "代休取得時間(分)予定込み": 120,
       },
     ];
     const actual = parseHolidayDataJson(testData);
@@ -379,6 +386,20 @@ describe("parseEmployeeJson", () => {
     ];
     const actual = parseEmployeeJson(testData);
     expect(actual).toEqual(expected);
+  });
+});
+
+describe("getTerm", () => {
+  it("getTerm return start and end", () => {
+    const actual = getTerm();
+    expect(actual).toEqual({ start: "2024-01-21", end: "2024-02-20" });
+  });
+});
+
+describe("getNendo", () => {
+  it("getTerm return start and end", () => {
+    const actual = getNendo();
+    expect(actual).toEqual(2023);
   });
 });
 

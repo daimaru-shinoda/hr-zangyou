@@ -7,8 +7,7 @@ export async function doDl() {
   await writeFile("./tmp/divisions.csv", json2csv(divisions));
   const employees = await fetchEmployee();
   await writeFile("./tmp/employees.csv", json2csv(employees));
-  const start = "2023-12-01";
-  const end = "2023-12-31";
+  const { start, end } = getTerm();
   let allWorkings: any[] = [];
   for (const divison of divisions) {
     const dailyWorkings = await fetchWorkingData(
@@ -21,11 +20,34 @@ export async function doDl() {
   await writeFile("./tmp/allWorkings.csv", json2csv(allWorkings));
   const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
   let allHolidays: any[] = [];
+  const nendo = getNendo();
   for (const employeeTypeCode of employeeTypeCodeList) {
-    const holidays = await fetchHolidays(employeeTypeCode, 2023);
+    const holidays = await fetchHolidays(employeeTypeCode, nendo);
     allHolidays = allHolidays.concat(holidays);
   }
   await writeFile("./tmp/allHolidays.csv", json2csv(allHolidays));
+}
+
+export function getTerm() {
+  const today = new Date().getDate();
+  const startDate = new Date();
+  if (today < 21) startDate.setMonth(startDate.getMonth() - 1);
+  startDate.setDate(21);
+  const endDate = new Date(
+    startDate.getFullYear(),
+    startDate.getMonth() + 1,
+    20
+  );
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
+  return { start, end };
+}
+
+export function getNendo() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  return month < 11 ? year - 1 : year;
 }
 
 /**
@@ -149,6 +171,7 @@ export function parseWorkingDataJson(json: any[]) {
       const workPlaceDivisionName = dw.workPlaceDivisionName;
       const overtime = dw.overtime;
       const totalWork = dw.totalWork;
+      const shukkinFlg = totalWork > 0 || (!!overtime && overtime > 0) ? 1 : 0;
       ret.push({
         日付: date,
         雇用者キー: employeeKey,
@@ -156,6 +179,7 @@ export function parseWorkingDataJson(json: any[]) {
         所属名: workPlaceDivisionName,
         残業時間: overtime,
         合計勤務時間: totalWork,
+        出勤フラグ: shukkinFlg,
       });
     }
   }
@@ -201,7 +225,6 @@ export function parseHolidayDataJson(json: any) {
       const obtained = holiday.obtained;
       if (!!obtained) {
         for (const { date, days, minutes } of obtained) {
-          console.log({ date, today, days });
           if (days) {
             if (date <= today) usedDays = usedDays.plus(days);
             usedDaysIncludeFuture = usedDaysIncludeFuture.plus(days);
