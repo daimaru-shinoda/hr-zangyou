@@ -1,0 +1,26 @@
+{
+  "editor.tabSize": 2,
+  "terminal.integrated.defaultProfile.windows": "Command Prompt",
+  "files.eol": "\n",
+  "terminal.integrated.autoReplies": {},
+  "terminal.integrated.detectLocale": "on",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "workbench.startupEditor": "none",
+  "git.openRepositoryInParentFolders": "never",
+  "terminal.integrated.scrollback": 10000,
+  "editor.formatOnSave": true,
+  "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[bat]": {
+      "files.encoding": "shiftjis",
+      "files.eol": "\r\n"
+  },
+  "[vb]": {
+      "files.encoding": "shiftjis",
+      "files.eol": "\r\n"
+  },
+  "[powershell]": {
+      "files.encoding": "utf16le"
+  }
+}
