@@ -1,12 +1,34 @@
-import { writeFile } from "fs/promises";
+import { writeFile, rm } from "fs/promises";
 import { ACCESS_TOKEN, formatDate, json2csv } from "./utils";
 import Decimal from "decimal.js";
 
+const DIVISION_FILE_NAME = "./tmp/divisions.csv";
+const EMPLOYEE_FILE_NAME = "./tmp/employees.csv";
+const ALL_WORKINGS_FILE_NAME = "./tmp/allWorkings.csv";
+const ALL_HOLIDAYS_FILE_NAME = "./tmp/allHolidays.csv";
+export const FILE_PATHS = [
+  DIVISION_FILE_NAME,
+  EMPLOYEE_FILE_NAME,
+  ALL_WORKINGS_FILE_NAME,
+  ALL_HOLIDAYS_FILE_NAME,
+];
+
+export async function clearFiles() {
+  for (const filePath of FILE_PATHS) {
+    try {
+      await rm(filePath);
+    } catch {
+      // do nothing
+    }
+  }
+}
+
 export async function doDl() {
+  await clearFiles();
   const divisions = await fetchDivisions();
-  await writeFile("./tmp/divisions.csv", json2csv(divisions));
+  await writeFile(DIVISION_FILE_NAME, json2csv(divisions));
   const employees = await fetchEmployee();
-  await writeFile("./tmp/employees.csv", json2csv(employees));
+  await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
   const { start, end } = getTerm();
   let allWorkings: any[] = [];
   for (const divison of divisions) {
@@ -17,7 +39,7 @@ export async function doDl() {
     );
     allWorkings = allWorkings.concat(dailyWorkings);
   }
-  await writeFile("./tmp/allWorkings.csv", json2csv(allWorkings));
+  await writeFile(ALL_WORKINGS_FILE_NAME, json2csv(allWorkings));
   const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
   let allHolidays: any[] = [];
   const nendo = getNendo();
@@ -25,7 +47,7 @@ export async function doDl() {
     const holidays = await fetchHolidays(employeeTypeCode, nendo);
     allHolidays = allHolidays.concat(holidays);
   }
-  await writeFile("./tmp/allHolidays.csv", json2csv(allHolidays));
+  await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
 }
 
 export function getTerm() {
