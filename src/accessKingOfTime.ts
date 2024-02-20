@@ -129,7 +129,7 @@ export function parseDivisionsJson(json: any[]) {
  * @see https://developer.kingtime.jp/#%E5%BE%93%E6%A5%AD%E5%93%A1-%E5%BE%93%E6%A5%AD%E5%93%A1%E3%83%87%E3%83%BC%E3%82%BF-get
  */
 async function fetchEmployee() {
-  const employeeURL = `https://api.kingtime.jp/v1.0/employees`;
+  const employeeURL = `https://api.kingtime.jp/v1.0/employees?includeResigner=true`;
   return parseEmployeeJson(await doFetch(employeeURL));
 }
 /**
