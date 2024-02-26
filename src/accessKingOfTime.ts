@@ -6,11 +6,13 @@ const DIVISION_FILE_NAME = "./tmp/divisions.csv";
 const EMPLOYEE_FILE_NAME = "./tmp/employees.csv";
 const ALL_WORKINGS_FILE_NAME = "./tmp/allWorkings.csv";
 const ALL_HOLIDAYS_FILE_NAME = "./tmp/allHolidays.csv";
+const YOTEI_HOLIDAYS_FILE_NAME = "./tmp/yoteiHolidays.csv";
 export const FILE_PATHS = [
   DIVISION_FILE_NAME,
   EMPLOYEE_FILE_NAME,
   ALL_WORKINGS_FILE_NAME,
   ALL_HOLIDAYS_FILE_NAME,
+  YOTEI_HOLIDAYS_FILE_NAME,
 ];
 
 export async function clearFiles() {
@@ -42,11 +44,17 @@ export async function doDl() {
   await writeFile(ALL_WORKINGS_FILE_NAME, json2csv(allWorkings));
   const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
   let allHolidays: any[] = [];
+  let allYoteiHolidays: any[] = [];
   const nendo = getNendo();
   for (const employeeTypeCode of employeeTypeCodeList) {
-    const holidays = await fetchHolidays(employeeTypeCode, nendo);
+    const { holidays, yoteiHolidays } = await fetchHolidays(
+      employeeTypeCode,
+      nendo
+    );
     allHolidays = allHolidays.concat(holidays);
+    allYoteiHolidays = allYoteiHolidays.concat(yoteiHolidays);
   }
+  await writeFile(YOTEI_HOLIDAYS_FILE_NAME, json2csv(allYoteiHolidays));
   await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
 }
 
@@ -225,9 +233,11 @@ async function fetchHolidays(employeeTypeCode: string, year: number) {
  * @see https://developer.kingtime.jp/#%E5%8B%A4%E6%80%A0-%E5%B9%B4%E5%88%A5%E4%BC%91%E6%9A%87%E3%83%87%E3%83%BC%E3%82%BF
  */
 export function parseHolidayDataJson(json: any) {
-  if (!json || !json.employees) return [];
+  const holidays: any[] = [];
+  const yoteiHolidays: any[] = [];
+  const ret = { holidays, yoteiHolidays };
+  if (!json || !json.employees) return ret;
   const today = formatDate(new Date());
-  const ret = [];
   const employees = json.employees;
   const year = json.year;
   for (const employee of employees) {
@@ -235,8 +245,8 @@ export function parseHolidayDataJson(json: any) {
     employeeData["年度"] = year;
     employeeData["雇用者キー"] = employee.employeeKey;
 
-    const holidays = employee.holidays;
-    for (const holiday of holidays) {
+    const employHolidays = employee.holidays;
+    for (const holiday of employHolidays) {
       const holidayName = holiday.name;
       const holidayCode = holiday.code;
 
@@ -247,6 +257,16 @@ export function parseHolidayDataJson(json: any) {
       const obtained = holiday.obtained;
       if (!!obtained) {
         for (const { date, days, minutes } of obtained) {
+          if (date >= today) {
+            yoteiHolidays.push({
+              雇用者キー: employee.employeeKey,
+              休暇コード: holidayCode,
+              休暇タイプ: holidayName,
+              休暇取得日: date,
+              休暇取得日数: days,
+              休暇取得時間: minutes,
+            });
+          }
           if (days) {
             if (date <= today) usedDays = usedDays.plus(days);
             usedDaysIncludeFuture = usedDaysIncludeFuture.plus(days);
@@ -266,7 +286,7 @@ export function parseHolidayDataJson(json: any) {
       employeeData[`${holidayName}取得時間(分)予定込み`] =
         usedMiniutesIncludeFuture.toNumber();
     }
-    ret.push(employeeData);
+    holidays.push(employeeData);
   }
   return ret;
 }
