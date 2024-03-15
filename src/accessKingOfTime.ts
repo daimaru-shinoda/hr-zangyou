@@ -98,6 +98,7 @@ function getEmployeeTypeCodeList(employees: { 社員タイプコード: string }
 async function doFetch(url: string) {
   const headers = {
     Authorization: `Bearer ${ACCESS_TOKEN}`,
+    "Content-Type": "application/json",
   };
 
   const result = await fetch(url, {

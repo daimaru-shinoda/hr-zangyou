@@ -267,25 +267,28 @@ describe("parseHolidayDataJson", () => {
         },
       ],
     };
-    const expected = [
-      {
-        年度: "2019",
-        雇用者キー:
-          "8b6ee646a9620b286499c3df6918c4888a97dd7bbc6a26a18743f4697a1de4b3",
-        "休暇コード-1": 1,
-        "休暇タイプ-1": "有休",
-        "有休取得日数(日)": 1,
-        "有休取得日数(日)予定込み": 1,
-        "有休取得時間(分)": 180,
-        "有休取得時間(分)予定込み": 180,
-        "休暇コード-2": 2,
-        "休暇タイプ-2": "代休",
-        "代休取得日数(日)": 3,
-        "代休取得日数(日)予定込み": 3,
-        "代休取得時間(分)": 120,
-        "代休取得時間(分)予定込み": 120,
-      },
-    ];
+    const expected = {
+      holidays: [
+        {
+          年度: "2019",
+          雇用者キー:
+            "8b6ee646a9620b286499c3df6918c4888a97dd7bbc6a26a18743f4697a1de4b3",
+          "休暇コード-1": 1,
+          "休暇タイプ-1": "有休",
+          "有休取得日数(日)": 1,
+          "有休取得日数(日)予定込み": 1,
+          "有休取得時間(分)": 180,
+          "有休取得時間(分)予定込み": 180,
+          "休暇コード-2": 2,
+          "休暇タイプ-2": "代休",
+          "代休取得日数(日)": 3,
+          "代休取得日数(日)予定込み": 3,
+          "代休取得時間(分)": 120,
+          "代休取得時間(分)予定込み": 120,
+        },
+      ],
+      yoteiHolidays: [],
+    };
     const actual = parseHolidayDataJson(testData);
     // console.log(actual);
     expect(actual).toEqual(expected);
@@ -391,6 +394,9 @@ describe("parseEmployeeJson", () => {
 
 describe("getTerm", () => {
   it("getTerm return start and end", () => {
+    const mockDate = new Date(2024, 0, 25);
+    jest.useFakeTimers();
+    jest.setSystemTime(mockDate);
     const actual = getTerm();
     expect(actual).toEqual({ start: "2024-01-21", end: "2024-02-20" });
   });
