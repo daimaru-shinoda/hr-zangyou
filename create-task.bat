@@ -7,7 +7,7 @@ cd %CURRENT_PATH%
 mkdir tmp 2> nul
 
 @rem バッチ実行
-call:createTask "勤務状況確認" %CURRENT_PATH%exec-dl.bat 01:31
+call:createTask "勤務状況確認" %CURRENT_PATH%exec.bat 01:31
 
 goto :eof
 
