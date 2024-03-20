@@ -138,7 +138,7 @@ export function parseDivisionsJson(json: any[]) {
  * @see https://developer.kingtime.jp/#%E5%BE%93%E6%A5%AD%E5%93%A1-%E5%BE%93%E6%A5%AD%E5%93%A1%E3%83%87%E3%83%BC%E3%82%BF-get
  */
 async function fetchEmployee() {
-  const employeeURL = `https://api.kingtime.jp/v1.0/employees?includeResigner=true`;
+  const employeeURL = `https://api.kingtime.jp/v1.0/employees?includeResigner=true&additionalFields=resignationDate`;
   return parseEmployeeJson(await doFetch(employeeURL));
 }
 /**
@@ -157,6 +157,7 @@ export function parseEmployeeJson(json: any[]) {
     firstName,
     key,
     divisionCode,
+    resignationDate,
   } of json) {
     ret.push({
       社員キー: key,
@@ -164,6 +165,7 @@ export function parseEmployeeJson(json: any[]) {
       所属コード: divisionCode,
       社員タイプコード: typeCode,
       社員タイプ: typeName,
+      退職日: resignationDate,
     });
   }
   return ret;
