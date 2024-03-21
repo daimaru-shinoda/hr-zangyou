@@ -4,7 +4,9 @@ import { sleep } from "./utils";
 
 (async () => {
   console.log("program start!");
-  await doDl();
+  const result = await doDl();
+  if (!result) return;
+
   const attempts = FILE_PATHS.map((path) => {
     return { filename: path.replace(`./tmp/`, ""), path };
   });

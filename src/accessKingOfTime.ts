@@ -25,7 +25,27 @@ export async function clearFiles() {
   }
 }
 
+/**
+ * king of time の利用可能時間か確認する
+ * @returns
+ */
+function checkHour() {
+  const today = new Date();
+  const hour = today.getHours();
+  const minutes = today.getMinutes();
+  const value = hour * 100 + minutes;
+  if (850 <= value && value <= 1000) return false;
+  if (1730 <= value && value <= 1830) return false;
+  return true;
+}
+
+/**
+ * ダウンロード開始する
+ * @returns true 成功
+ */
 export async function doDl() {
+  if (!checkHour()) return console.log("利用可能時間外です");
+
   await clearFiles();
   const divisions = await fetchDivisions();
   await writeFile(DIVISION_FILE_NAME, json2csv(divisions));
@@ -56,13 +76,15 @@ export async function doDl() {
   }
   await writeFile(YOTEI_HOLIDAYS_FILE_NAME, json2csv(allYoteiHolidays));
   await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
+
+  return true;
 }
 
 export function getTerm() {
   const today = new Date().getDate();
   const startDate = new Date();
-  if (today < 21) startDate.setMonth(startDate.getMonth() - 1);
-  startDate.setDate(21);
+  if (today < 22) startDate.setMonth(startDate.getMonth() - 1);
+  startDate.setDate(22);
   const endDate = new Date(
     startDate.getFullYear(),
     startDate.getMonth() + 1,
