@@ -52,6 +52,7 @@ export async function doDl() {
   const employees = await fetchEmployee();
   await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
   const { start, end } = getTerm();
+  console.log({ start, end });
   let allWorkings: any[] = [];
   for (const divison of divisions) {
     const dailyWorkings = await fetchWorkingData(
@@ -84,7 +85,7 @@ export function getTerm() {
   const today = new Date().getDate();
   const startDate = new Date();
   if (today < 22) startDate.setMonth(startDate.getMonth() - 1);
-  startDate.setDate(22);
+  startDate.setDate(21);
   const endDate = new Date(
     startDate.getFullYear(),
     startDate.getMonth() + 1,
