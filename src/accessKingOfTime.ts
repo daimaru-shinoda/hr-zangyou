@@ -100,7 +100,7 @@ export function getNendo() {
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
-  return month < 11 ? year - 1 : year;
+  return month < 4 ? year - 1 : year;
 }
 
 /**
@@ -228,6 +228,8 @@ export function parseWorkingDataJson(json: any[]) {
       const overtime = dw.overtime;
       const totalWork = dw.totalWork;
       const shukkinFlg = totalWork > 0 || (!!overtime && overtime > 0) ? 1 : 0;
+      const errorText = dw.isError ? "エラー" : "";
+
       ret.push({
         日付: date,
         雇用者キー: employeeKey,
@@ -236,6 +238,7 @@ export function parseWorkingDataJson(json: any[]) {
         残業時間: overtime,
         合計勤務時間: totalWork,
         出勤フラグ: shukkinFlg,
+        エラー: errorText,
       });
     }
   }
