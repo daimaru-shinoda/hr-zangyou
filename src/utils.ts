@@ -77,11 +77,25 @@ export function pad0(n: number, count: number = 2) {
   return array.join("");
 }
 
+export function formatYM(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  return `${year}-${pad0(month)}`;
+}
+
 export function formatDate(date: Date) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
   return `${year}-${pad0(month)}-${pad0(day)}`;
+}
+
+export function formatTime(date: Date) {
+  const dateStr = formatDate(date);
+  const hour = date.getHours();
+  const minutes = date.getMinutes();
+
+  return `${dateStr} ${pad0(hour)}:${pad0(minutes)}`;
 }
 
 export function json2csv(json: any[]) {

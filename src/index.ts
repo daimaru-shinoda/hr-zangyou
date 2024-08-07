@@ -13,4 +13,7 @@ import { sleep } from "./utils";
   await sendMail(attempts);
   await sleep(2);
   await clearFiles();
+
+  // const data = await fetchRequestTimerecord();
+  // console.log(data);
 })();

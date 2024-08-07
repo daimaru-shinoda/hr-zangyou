@@ -24,7 +24,7 @@
     "build:watch": "npx tsc --watch",
     "start": "npx tsc && node ./dist/src/index.js",
     "start:scraper": "node ./dist/src/index.js",
-    "test": "npx tsc && jest"
+    "test": "npx tsc && jest dist/test"
   },
   "repository": {
     "url": "https://github.com/daimaru-shinoda/hr-zangyou.git"

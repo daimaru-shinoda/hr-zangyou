@@ -1,5 +1,11 @@
 import { writeFile, rm } from "fs/promises";
-import { ACCESS_TOKEN, formatDate, json2csv } from "./utils";
+import {
+  ACCESS_TOKEN,
+  formatDate,
+  formatTime,
+  formatYM,
+  json2csv,
+} from "./utils";
 import Decimal from "decimal.js";
 
 const DIVISION_FILE_NAME = "./tmp/divisions.csv";
@@ -7,12 +13,14 @@ const EMPLOYEE_FILE_NAME = "./tmp/employees.csv";
 const ALL_WORKINGS_FILE_NAME = "./tmp/allWorkings.csv";
 const ALL_HOLIDAYS_FILE_NAME = "./tmp/allHolidays.csv";
 const YOTEI_HOLIDAYS_FILE_NAME = "./tmp/yoteiHolidays.csv";
+const TIME_RECORD_FILE_NAME = "./tmp/timeRecord.csv";
 export const FILE_PATHS = [
   DIVISION_FILE_NAME,
   EMPLOYEE_FILE_NAME,
   ALL_WORKINGS_FILE_NAME,
   ALL_HOLIDAYS_FILE_NAME,
   YOTEI_HOLIDAYS_FILE_NAME,
+  TIME_RECORD_FILE_NAME,
 ];
 
 export async function clearFiles() {
@@ -49,10 +57,28 @@ export async function doDl() {
   await clearFiles();
   const divisions = await fetchDivisions();
   await writeFile(DIVISION_FILE_NAME, json2csv(divisions));
-  const employees = await fetchEmployee();
-  await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
+
+  const requestArray = await fetchRequestTimerecord();
+
+  const records = [];
   const { start, end } = getTerm();
   console.log({ start, end });
+  for (const division of divisions) {
+    const timeRecords = await fetchTimerecord(division.所属コード, start, end);
+    const filtered = timeRecords.filter((record) => {
+      for (const request of requestArray) {
+        if (record.社員コード !== request.社員コード) continue;
+        if (record.日付 !== request.日付) continue;
+        return false;
+      }
+      return true;
+    });
+    records.push(...filtered);
+  }
+  await writeFile(TIME_RECORD_FILE_NAME, json2csv(records));
+
+  const employees = await fetchEmployee();
+  await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
   let allWorkings: any[] = [];
   for (const divison of divisions) {
     const dailyWorkings = await fetchWorkingData(
@@ -72,8 +98,8 @@ export async function doDl() {
       employeeTypeCode,
       nendo
     );
-    allHolidays = allHolidays.concat(holidays);
-    allYoteiHolidays = allYoteiHolidays.concat(yoteiHolidays);
+    allHolidays.push(...holidays);
+    allYoteiHolidays.push(...yoteiHolidays);
   }
   await writeFile(YOTEI_HOLIDAYS_FILE_NAME, json2csv(allYoteiHolidays));
   await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
@@ -84,12 +110,16 @@ export async function doDl() {
 export function getTerm() {
   const today = new Date().getDate();
   const startDate = new Date();
-  if (today < 22) startDate.setMonth(startDate.getMonth() - 1);
-  startDate.setDate(21);
+  if (today < 22) {
+    startDate.setMonth(startDate.getMonth() - 1);
+    startDate.setDate(21);
+  } else {
+    startDate.setDate(21);
+  }
   const endDate = new Date(
     startDate.getFullYear(),
-    startDate.getMonth() + 1,
-    20
+    today < 22 ? startDate.getMonth() + 1 : startDate.getMonth(),
+    today - 1
   );
   const start = formatDate(startDate);
   const end = formatDate(endDate);
@@ -316,6 +346,108 @@ export function parseHolidayDataJson(json: any) {
         usedMiniutesIncludeFuture.toNumber();
     }
     holidays.push(employeeData);
+  }
+  return ret;
+}
+
+/**
+ * 日別打刻データを取得する
+ * @param startDate 対象日
+ * @param division 部署コード
+ * @returns
+ */
+async function fetchTimerecord(division: string, start: string, end: string) {
+  const url = `https://api.kingtime.jp/v1.0/daily-workings/timerecord?division=${division}&ondivision=true&start=${start}&end=${end}&additionalFields=currentDateEmployee`;
+  return parseTimerecordJson(await doFetch(url), division);
+}
+
+/**
+ * 打刻データを出勤・退勤時刻に変更する
+ * @param timeRecords
+ * @returns
+ */
+function getStartAndEndFromTimeRecords(
+  timeRecords: { time: string; name: string }[]
+) {
+  const start = timeRecords.find(({ name }) => name === "出勤")?.time;
+  const end = timeRecords.find(({ name }) => name === "退勤")?.time;
+  return { start, end };
+}
+
+/**
+ * 打刻忘れをチェックし、忘れている場合は配列にする
+ * @param json
+ * @see https://developer.kingtime.jp/#%E5%8B%A4%E6%80%A0-%E5%B9%B4%E5%88%A5%E4%BC%91%E6%9A%87%E3%83%87%E3%83%BC%E3%82%BF
+ */
+export function parseTimerecordJson(array: any[], division: string) {
+  const ret = [];
+  for (const { dailyWorkings } of array) {
+    for (const {
+      date,
+      employeeKey,
+      currentDateEmployee,
+      timeRecord,
+    } of dailyWorkings) {
+      if (!currentDateEmployee)
+        throw new Error(`currentDateEmployeeが見つかりません`);
+      const name = currentDateEmployee.lastName + currentDateEmployee.firstName;
+      const typeName = currentDateEmployee.typeName;
+      const { start, end } = getStartAndEndFromTimeRecords(timeRecord);
+      const startStr = start ? formatTime(new Date(start)) : "";
+      const endStr = end ? formatTime(new Date(end)) : "";
+
+      if (!!startStr && !!endStr) continue; // 出勤退勤が両方ある場合は除外
+
+      ret.push({
+        日付: date,
+        勤務開始: startStr,
+        勤務終了: endStr,
+        社員名: name,
+        社員タイプ: typeName,
+        社員コード: employeeKey,
+        所属コード: division,
+      });
+    }
+  }
+  return ret;
+}
+
+/**
+ * 打刻修正申請を取得する
+ * @param startDate 対象日
+ * @param division 部署コード
+ * @returns
+ */
+export async function fetchRequestTimerecord() {
+  const date = new Date();
+  const dateArray = [formatYM(date)];
+  date.setMonth(date.getMonth() - 1);
+  dateArray.unshift(formatYM(date));
+
+  const ret = [];
+  for (const dateStr of dateArray) {
+    const url = `https://api.kingtime.jp/v1.0/requests/timerecords/${dateStr}`;
+    const result = parseRequestTimerecordJson(await doFetch(url));
+    ret.push(...result);
+  }
+  return ret;
+}
+
+/**
+ * 打刻修正申請を配列にする
+ * @param json
+ * @see https://developer.kingtime.jp/#%E5%8B%A4%E6%80%A0-%E5%B9%B4%E5%88%A5%E4%BC%91%E6%9A%87%E3%83%87%E3%83%BC%E3%82%BF
+ */
+export function parseRequestTimerecordJson(json: any) {
+  const ret = [];
+  for (const { date, message, status, employeeKey } of json.requests) {
+    if (status !== "applying") continue; // 申請中データのみ取得する
+    ret.push({
+      日付: date,
+      メッセージ: message,
+      承認状況: status,
+      社員コード: employeeKey,
+    });
   }
   return ret;
 }
