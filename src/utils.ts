@@ -115,3 +115,9 @@ export function json2csv(json: any[]) {
     .join("\n");
   return header + body;
 }
+
+export function sum(nums: number[]) {
+  let i = 0;
+  for (const num of nums) i += num;
+  return i;
+}

@@ -5,6 +5,7 @@ import {
   formatTime,
   formatYM,
   json2csv,
+  sum,
 } from "./utils";
 import Decimal from "decimal.js";
 
@@ -286,11 +287,6 @@ async function fetchHolidays(employeeTypeCode: string, year: number) {
   return parseHolidayDataJson(await doFetch(url));
 }
 
-/**
- * 休暇データjsonを配列に変える
- * @param json
- * @see https://developer.kingtime.jp/#%E5%8B%A4%E6%80%A0-%E5%B9%B4%E5%88%A5%E4%BC%91%E6%9A%87%E3%83%87%E3%83%BC%E3%82%BF
- */
 export function parseHolidayDataJson(json: any) {
   const holidays: any[] = [];
   const yoteiHolidays: any[] = [];
@@ -344,6 +340,12 @@ export function parseHolidayDataJson(json: any) {
       employeeData[`${holidayName}取得時間(分)`] = usedMiniutes.toNumber();
       employeeData[`${holidayName}取得時間(分)予定込み`] =
         usedMiniutesIncludeFuture.toNumber();
+      const expired: {days: number}[] = holiday.expired;
+      if (!!expired) {
+        employeeData[`失効済み-${holidayName}`] = sum(expired.map(({days}) => days).filter(v => !!v));
+      } else {
+        employeeData[`失効済み-${holidayName}`] = 0;
+      }
     }
     holidays.push(employeeData);
   }
@@ -439,6 +441,7 @@ export async function fetchRequestTimerecord() {
  * @see https://developer.kingtime.jp/#%E5%8B%A4%E6%80%A0-%E5%B9%B4%E5%88%A5%E4%BC%91%E6%9A%87%E3%83%87%E3%83%BC%E3%82%BF
  */
 export function parseRequestTimerecordJson(json: any) {
+  if (!json.request) return [];
   const ret = [];
   for (const { date, message, status, employeeKey } of json.requests) {
     if (status !== "applying") continue; // 申請中データのみ取得する
