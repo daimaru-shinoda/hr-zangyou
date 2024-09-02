@@ -11,50 +11,11 @@ export const env = load({
   GAS_API_KEY: String,
 });
 
-export type MAIL_JSON = {
-  user: string;
-  pass: string;
-};
-
 /**
  * 環境設定名
  */
 enum JSON_ENV_NAME {
   ACCESS_TOKEN = "ACCESS_TOKEN",
-  MAIL = "MAIL_JSON",
-}
-
-/**
- * MAIL用設定JSONを読み込む
- */
-export function loadJsonMail(): MAIL_JSON {
-  return loadJson(JSON_ENV_NAME.MAIL) as MAIL_JSON;
-}
-
-/**
- * 環境変数名を指定してJSONを読み込む
- * @param envName 環境変数名
- */
-function loadJson(envName: JSON_ENV_NAME): MAIL_JSON {
-  const content = env[envName];
-  if (!content) throw new Error(`環境変数が設定されてません ${envName}`);
-  try {
-    return JSON.parse(content);
-  } catch (e) {
-    console.error("環境変数から取得したjsonのパースに失敗しました。", {
-      content,
-    });
-    throw e;
-  }
-}
-
-export function getGASInfo() {
-  const url = env.GAS_URL;
-  const apiKey = env.GAS_API_KEY;
-  if (!url || !apiKey) {
-    throw new Error("GASのURLかAPIキーが設定されていません");
-  }
-  return { url, apiKey };
 }
 
 /**
@@ -69,6 +30,19 @@ export const IS_TEST = isTest();
 export const ACCESS_TOKEN = env.ACCESS_TOKEN;
 
 /**
+ * GASのURLとAPIキーを取得する
+ * @returns { url: GASのURL, apiKey: APIキー }
+ */
+export function getGASInfo() {
+  const url = env.GAS_URL;
+  const apiKey = env.GAS_API_KEY;
+  if (!url || !apiKey) {
+    throw new Error("GASのURLかAPIキーが設定されていません");
+  }
+  return { url, apiKey };
+}
+
+/**
  * スリープする
  * @param seconds 秒数
  */
@@ -77,23 +51,31 @@ export function sleep(seconds: number) {
   return new Promise((r) => setTimeout(r, sec * 1000));
 }
 
+/**
+ * 先頭0埋めする
+ * @param n
+ * @param count
+ * @returns 0埋めされた文字列
+ */
 export function pad0(n: number, count: number = 2) {
-  const nStr = `${n}`;
-  const length = count - nStr.length;
-  const array = [];
-  for (let i = 0; i < length; i++) {
-    array.push(0);
-  }
-  array.push(n);
-  return array.join("");
+  return `${n}`.padStart(count, "0");
 }
 
+/**
+ * 指定された日付の年月を取得する
+ * @returns yyyy-MM形式の年月
+ */
 export function formatYM(date: Date) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   return `${year}-${pad0(month)}`;
 }
 
+/**
+ * 指定された日付の年月日を取得する
+ * @param date
+ * @returns yyyy-MM-dd形式の年月日
+ */
 export function formatDate(date: Date) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -101,6 +83,11 @@ export function formatDate(date: Date) {
   return `${year}-${pad0(month)}-${pad0(day)}`;
 }
 
+/**
+ * 指定された日付の年月日時分を取得する
+ * @param date
+ * @returns yyyy-MM-dd HH:mm形式の年月日時分
+ */
 export function formatTime(date: Date) {
   const dateStr = formatDate(date);
   const hour = date.getHours();
@@ -109,6 +96,11 @@ export function formatTime(date: Date) {
   return `${dateStr} ${pad0(hour)}:${pad0(minutes)}`;
 }
 
+/**
+ * JSONをCSV形式に変換する
+ * @param json
+ * @returns CSV形式の文字列
+ */
 export function json2csv(json: any[]) {
   if (json.length === 0) return "";
 
@@ -129,6 +121,11 @@ export function json2csv(json: any[]) {
   return header + body;
 }
 
+/**
+ * 配列の合計を求める
+ * @param nums
+ * @returns 合計値
+ */
 export function sum(nums: number[]) {
   let i = 0;
   for (const num of nums) i += num;

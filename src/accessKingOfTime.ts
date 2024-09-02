@@ -1,4 +1,3 @@
-import { writeFile, rm } from "fs/promises";
 import {
   ACCESS_TOKEN,
   formatDate,
@@ -9,32 +8,6 @@ import {
   sum,
 } from "./utils";
 import Decimal from "decimal.js";
-import { env } from "process";
-
-const DIVISION_FILE_NAME = "./tmp/divisions.csv";
-const EMPLOYEE_FILE_NAME = "./tmp/employees.csv";
-const ALL_WORKINGS_FILE_NAME = "./tmp/allWorkings.csv";
-const ALL_HOLIDAYS_FILE_NAME = "./tmp/allHolidays.csv";
-const YOTEI_HOLIDAYS_FILE_NAME = "./tmp/yoteiHolidays.csv";
-const TIME_RECORD_FILE_NAME = "./tmp/timeRecord.csv";
-export const FILE_PATHS = [
-  DIVISION_FILE_NAME,
-  EMPLOYEE_FILE_NAME,
-  ALL_WORKINGS_FILE_NAME,
-  ALL_HOLIDAYS_FILE_NAME,
-  YOTEI_HOLIDAYS_FILE_NAME,
-  TIME_RECORD_FILE_NAME,
-];
-
-export async function clearFiles() {
-  for (const filePath of FILE_PATHS) {
-    try {
-      await rm(filePath);
-    } catch {
-      // do nothing
-    }
-  }
-}
 
 /**
  * king of time の利用可能時間か確認する
@@ -51,65 +24,9 @@ function checkHour() {
 }
 
 /**
- * ダウンロード開始する
+ * 勤怠データダウンロード開始しGASサーバへアップロードする
  * @returns true 成功
  */
-// export async function doDl() {
-//   if (!checkHour()) return console.log("利用可能時間外です");
-
-//   await clearFiles();
-//   const divisions = await fetchDivisions();
-//   await writeFile(DIVISION_FILE_NAME, json2csv(divisions));
-
-//   const requestArray = await fetchRequestTimerecord();
-
-//   const records = [];
-//   const { start, end } = getTerm();
-//   console.log({ start, end });
-//   for (const division of divisions) {
-//     const timeRecords = await fetchTimerecord(division.所属コード, start, end);
-//     const filtered = timeRecords.filter((record) => {
-//       for (const request of requestArray) {
-//         if (record.社員コード !== request.社員コード) continue;
-//         if (record.日付 !== request.日付) continue;
-//         return false;
-//       }
-//       return true;
-//     });
-//     records.push(...filtered);
-//   }
-//   await writeFile(TIME_RECORD_FILE_NAME, json2csv(records));
-
-//   const employees = await fetchEmployee();
-//   await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
-//   let allWorkings: any[] = [];
-//   for (const divison of divisions) {
-//     const dailyWorkings = await fetchWorkingData(
-//       divison.所属コード,
-//       start,
-//       end
-//     );
-//     allWorkings = allWorkings.concat(dailyWorkings);
-//   }
-//   await writeFile(ALL_WORKINGS_FILE_NAME, json2csv(allWorkings));
-//   const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
-//   let allHolidays: any[] = [];
-//   let allYoteiHolidays: any[] = [];
-//   const nendo = getNendo();
-//   for (const employeeTypeCode of employeeTypeCodeList) {
-//     const { holidays, yoteiHolidays } = await fetchHolidays(
-//       employeeTypeCode,
-//       nendo
-//     );
-//     allHolidays.push(...holidays);
-//     allYoteiHolidays.push(...yoteiHolidays);
-//   }
-//   await writeFile(YOTEI_HOLIDAYS_FILE_NAME, json2csv(allYoteiHolidays));
-//   await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
-
-//   return true;
-// }
-
 export async function doDl() {
   if (!checkHour()) return console.log("利用可能時間外です");
 
@@ -183,7 +100,7 @@ export async function doDl() {
 }
 
 /**
- * CSVをアップロードする
+ * CSVをGASサーバーへアップロードする
  * @param csvname
  * @param csvStr
  */
@@ -203,25 +120,29 @@ async function postCsv(csvname: string, csvStr: string) {
   await fetch(url, options);
 }
 
+/**
+ * 開始日と終了日を取得する
+ * @returns
+ */
 export function getTerm() {
   const today = new Date().getDate();
-  const startDate = new Date();
+  const startDate = new Date(); // 22日以降は前月の21日から取得する
   if (today < 22) {
     startDate.setMonth(startDate.getMonth() - 1);
-    startDate.setDate(21);
-  } else {
-    startDate.setDate(21);
   }
-  const endDate = new Date(
-    startDate.getFullYear(),
-    today < 22 ? startDate.getMonth() + 1 : startDate.getMonth(),
-    today - 1
-  );
+  startDate.setDate(21);
+
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - 1); // 昨日までのデータを取得する
   const start = formatDate(startDate);
   const end = formatDate(endDate);
   return { start, end };
 }
 
+/**
+ * 年度を取得する
+ * @returns
+ */
 export function getNendo() {
   const today = new Date();
   const year = today.getFullYear();
@@ -244,6 +165,12 @@ function getEmployeeTypeCodeList(employees: { 社員タイプコード: string }
   return ret;
 }
 
+/**
+ * urlからjsonをgetする
+ * @param url
+ * @returns jsonデータ
+ * @see ACCESS_TOKEN
+ */
 async function doFetch(url: string) {
   const headers = {
     Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -382,6 +309,11 @@ async function fetchHolidays(employeeTypeCode: string, year: number) {
   return parseHolidayDataJson(await doFetch(url));
 }
 
+/**
+ * 休暇データを配列に変える
+ * @param json
+ * @returns
+ */
 export function parseHolidayDataJson(json: any) {
   const holidays: any[] = [];
   const yoteiHolidays: any[] = [];
