@@ -4,10 +4,12 @@ import {
   formatDate,
   formatTime,
   formatYM,
+  getGASInfo,
   json2csv,
   sum,
 } from "./utils";
 import Decimal from "decimal.js";
+import { env } from "process";
 
 const DIVISION_FILE_NAME = "./tmp/divisions.csv";
 const EMPLOYEE_FILE_NAME = "./tmp/employees.csv";
@@ -52,60 +54,153 @@ function checkHour() {
  * ダウンロード開始する
  * @returns true 成功
  */
+// export async function doDl() {
+//   if (!checkHour()) return console.log("利用可能時間外です");
+
+//   await clearFiles();
+//   const divisions = await fetchDivisions();
+//   await writeFile(DIVISION_FILE_NAME, json2csv(divisions));
+
+//   const requestArray = await fetchRequestTimerecord();
+
+//   const records = [];
+//   const { start, end } = getTerm();
+//   console.log({ start, end });
+//   for (const division of divisions) {
+//     const timeRecords = await fetchTimerecord(division.所属コード, start, end);
+//     const filtered = timeRecords.filter((record) => {
+//       for (const request of requestArray) {
+//         if (record.社員コード !== request.社員コード) continue;
+//         if (record.日付 !== request.日付) continue;
+//         return false;
+//       }
+//       return true;
+//     });
+//     records.push(...filtered);
+//   }
+//   await writeFile(TIME_RECORD_FILE_NAME, json2csv(records));
+
+//   const employees = await fetchEmployee();
+//   await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
+//   let allWorkings: any[] = [];
+//   for (const divison of divisions) {
+//     const dailyWorkings = await fetchWorkingData(
+//       divison.所属コード,
+//       start,
+//       end
+//     );
+//     allWorkings = allWorkings.concat(dailyWorkings);
+//   }
+//   await writeFile(ALL_WORKINGS_FILE_NAME, json2csv(allWorkings));
+//   const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
+//   let allHolidays: any[] = [];
+//   let allYoteiHolidays: any[] = [];
+//   const nendo = getNendo();
+//   for (const employeeTypeCode of employeeTypeCodeList) {
+//     const { holidays, yoteiHolidays } = await fetchHolidays(
+//       employeeTypeCode,
+//       nendo
+//     );
+//     allHolidays.push(...holidays);
+//     allYoteiHolidays.push(...yoteiHolidays);
+//   }
+//   await writeFile(YOTEI_HOLIDAYS_FILE_NAME, json2csv(allYoteiHolidays));
+//   await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
+
+//   return true;
+// }
+
 export async function doDl() {
   if (!checkHour()) return console.log("利用可能時間外です");
 
-  await clearFiles();
   const divisions = await fetchDivisions();
-  await writeFile(DIVISION_FILE_NAME, json2csv(divisions));
+  await postCsv("divisions", json2csv(divisions));
 
   const requestArray = await fetchRequestTimerecord();
 
   const records = [];
   const { start, end } = getTerm();
   console.log({ start, end });
-  for (const division of divisions) {
-    const timeRecords = await fetchTimerecord(division.所属コード, start, end);
-    const filtered = timeRecords.filter((record) => {
-      for (const request of requestArray) {
-        if (record.社員コード !== request.社員コード) continue;
-        if (record.日付 !== request.日付) continue;
-        return false;
-      }
-      return true;
-    });
-    records.push(...filtered);
+  {
+    for (const division of divisions) {
+      const timeRecords = await fetchTimerecord(
+        division.所属コード,
+        start,
+        end
+      );
+      const filtered = timeRecords.filter((record) => {
+        for (const request of requestArray) {
+          if (record.社員コード !== request.社員コード) continue;
+          if (record.日付 !== request.日付) continue;
+          return false;
+        }
+        return true;
+      });
+      records.push(...filtered);
+    }
+    await postCsv("timerecord", json2csv(records));
   }
-  await writeFile(TIME_RECORD_FILE_NAME, json2csv(records));
 
   const employees = await fetchEmployee();
-  await writeFile(EMPLOYEE_FILE_NAME, json2csv(employees));
-  let allWorkings: any[] = [];
-  for (const divison of divisions) {
-    const dailyWorkings = await fetchWorkingData(
-      divison.所属コード,
-      start,
-      end
-    );
-    allWorkings = allWorkings.concat(dailyWorkings);
+  await postCsv("employees", json2csv(employees));
+
+  {
+    const allWorkings = [];
+    for (const divison of divisions) {
+      const dailyWorkings = await fetchWorkingData(
+        divison.所属コード,
+        start,
+        end
+      );
+      allWorkings.push(...dailyWorkings);
+    }
+    allWorkings.sort((a, b) => {
+      if (a.日付 > b.日付) return 1;
+      if (a.日付 < b.日付) return -1;
+      return 0;
+    });
+    await postCsv("allWorkings", json2csv(allWorkings));
   }
-  await writeFile(ALL_WORKINGS_FILE_NAME, json2csv(allWorkings));
-  const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
-  let allHolidays: any[] = [];
-  let allYoteiHolidays: any[] = [];
-  const nendo = getNendo();
-  for (const employeeTypeCode of employeeTypeCodeList) {
-    const { holidays, yoteiHolidays } = await fetchHolidays(
-      employeeTypeCode,
-      nendo
-    );
-    allHolidays.push(...holidays);
-    allYoteiHolidays.push(...yoteiHolidays);
+
+  {
+    const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
+    let allHolidays: any[] = [];
+    let allYoteiHolidays: any[] = [];
+    const nendo = getNendo();
+    for (const employeeTypeCode of employeeTypeCodeList) {
+      const { holidays, yoteiHolidays } = await fetchHolidays(
+        employeeTypeCode,
+        nendo
+      );
+      allHolidays.push(...holidays);
+      allYoteiHolidays.push(...yoteiHolidays);
+    }
+    await postCsv("yoteiHolidays", json2csv(allYoteiHolidays));
+    await postCsv("allHolidays", json2csv(allHolidays));
   }
-  await writeFile(YOTEI_HOLIDAYS_FILE_NAME, json2csv(allYoteiHolidays));
-  await writeFile(ALL_HOLIDAYS_FILE_NAME, json2csv(allHolidays));
 
   return true;
+}
+
+/**
+ * CSVをアップロードする
+ * @param csvname
+ * @param csvStr
+ */
+async function postCsv(csvname: string, csvStr: string) {
+  if (!csvStr) return console.log("csvStr is empty", csvname);
+  const { url, apiKey } = getGASInfo();
+  const body = JSON.stringify({
+    csvStr,
+    csvname,
+    apiKey,
+    target: "大丸開発",
+  });
+  const options = {
+    method: "post",
+    body,
+  };
+  await fetch(url, options);
 }
 
 export function getTerm() {
@@ -340,9 +435,11 @@ export function parseHolidayDataJson(json: any) {
       employeeData[`${holidayName}取得時間(分)`] = usedMiniutes.toNumber();
       employeeData[`${holidayName}取得時間(分)予定込み`] =
         usedMiniutesIncludeFuture.toNumber();
-      const expired: {days: number}[] = holiday.expired;
+      const expired: { days: number }[] = holiday.expired;
       if (!!expired) {
-        employeeData[`失効済み-${holidayName}`] = sum(expired.map(({days}) => days).filter(v => !!v));
+        employeeData[`失効済み-${holidayName}`] = sum(
+          expired.map(({ days }) => days).filter((v) => !!v)
+        );
       } else {
         employeeData[`失効済み-${holidayName}`] = 0;
       }

@@ -7,6 +7,8 @@ export const env = load({
   ACCESS_TOKEN: String,
   MAIL_JSON: String,
   IS_TEST: String,
+  GAS_URL: String,
+  GAS_API_KEY: String,
 });
 
 export type MAIL_JSON = {
@@ -44,6 +46,15 @@ function loadJson(envName: JSON_ENV_NAME): MAIL_JSON {
     });
     throw e;
   }
+}
+
+export function getGASInfo() {
+  const url = env.GAS_URL;
+  const apiKey = env.GAS_API_KEY;
+  if (!url || !apiKey) {
+    throw new Error("GASのURLかAPIキーが設定されていません");
+  }
+  return { url, apiKey };
 }
 
 /**
@@ -99,6 +110,8 @@ export function formatTime(date: Date) {
 }
 
 export function json2csv(json: any[]) {
+  if (json.length === 0) return "";
+
   const keys: string[] = [];
   for (const row of json) {
     const rowKeys = Object.keys(row);
