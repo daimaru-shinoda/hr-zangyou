@@ -5,7 +5,6 @@ import { load } from "ts-dotenv";
  */
 export const env = load({
   ACCESS_TOKEN: String,
-  MAIL_JSON: String,
   IS_TEST: String,
   GAS_URL: String,
   GAS_API_KEY: String,
