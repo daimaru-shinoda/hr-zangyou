@@ -33,8 +33,10 @@ export async function doDl() {
   const divisions = await fetchDivisions();
   await postCsv("divisions", json2csv(divisions));
 
+  // 修正申請リストを取得する
   const requestArray = await fetchRequestTimerecord();
-
+  console.log("修正申請リスト");
+  console.log(json2csv(requestArray));
   const records = [];
   const { start, end } = getTerm();
   console.log({ start, end });
@@ -55,6 +57,8 @@ export async function doDl() {
       });
       records.push(...filtered);
     }
+    console.log("変な申請リスト");
+    console.log(json2csv(records));
     await postCsv("timerecord", json2csv(records));
   }
 
@@ -180,6 +184,8 @@ async function doFetch(url: string) {
   const result = await fetch(url, {
     headers,
   });
+  if (result.status === 400)
+    console.error("doFetch error", url, result.status, await result.text());
   if (result.status !== 200) return [];
   return await result.json();
 }
@@ -470,7 +476,7 @@ export async function fetchRequestTimerecord() {
  * @see https://developer.kingtime.jp/#%E5%8B%A4%E6%80%A0-%E5%B9%B4%E5%88%A5%E4%BC%91%E6%9A%87%E3%83%87%E3%83%BC%E3%82%BF
  */
 export function parseRequestTimerecordJson(json: any) {
-  if (!json.request) return [];
+  if (!json.requests) return [];
   const ret = [];
   for (const { date, message, status, employeeKey } of json.requests) {
     if (status !== "applying") continue; // 申請中データのみ取得する
