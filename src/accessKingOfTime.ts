@@ -38,15 +38,17 @@ export async function doDl() {
   console.log("修正申請リスト");
   console.log(json2csv(requestArray));
   const records = [];
+  const allRecords = [];
   const { start, end } = getTerm();
   console.log({ start, end });
   {
     for (const division of divisions) {
-      const timeRecords = await fetchTimerecord(
+      const [timeRecords, allData] = await fetchTimerecord(
         division.所属コード,
         start,
         end
       );
+      allRecords.push(...allData);
       const filtered = timeRecords.filter((record) => {
         for (const request of requestArray) {
           if (record.社員コード !== request.社員コード) continue;
@@ -57,9 +59,8 @@ export async function doDl() {
       });
       records.push(...filtered);
     }
-    console.log("変な申請リスト");
-    console.log(json2csv(records));
     await postCsv("timerecord", json2csv(records));
+    await postCsv("allTimerecord", json2csv(allRecords));
   }
 
   const employees = await fetchEmployee();
@@ -391,7 +392,6 @@ export function parseHolidayDataJson(json: any) {
  * 日別打刻データを取得する
  * @param startDate 対象日
  * @param division 部署コード
- * @returns
  */
 async function fetchTimerecord(division: string, start: string, end: string) {
   const url = `https://api.kingtime.jp/v1.0/daily-workings/timerecord?division=${division}&ondivision=true&start=${start}&end=${end}&additionalFields=currentDateEmployee`;
@@ -418,6 +418,7 @@ function getStartAndEndFromTimeRecords(
  */
 export function parseTimerecordJson(array: any[], division: string) {
   const ret = [];
+  const allData = [];
   for (const { dailyWorkings } of array) {
     for (const {
       date,
@@ -433,9 +434,7 @@ export function parseTimerecordJson(array: any[], division: string) {
       const startStr = start ? formatTime(new Date(start)) : "";
       const endStr = end ? formatTime(new Date(end)) : "";
 
-      if (!!startStr && !!endStr) continue; // 出勤退勤が両方ある場合は除外
-
-      ret.push({
+      const data = {
         日付: date,
         勤務開始: startStr,
         勤務終了: endStr,
@@ -443,10 +442,16 @@ export function parseTimerecordJson(array: any[], division: string) {
         社員タイプ: typeName,
         社員コード: employeeKey,
         所属コード: division,
-      });
+      };
+
+      allData.push(data);
+
+      if (!!startStr && !!endStr) continue; // 出勤退勤が両方ある場合は除外
+
+      ret.push(data);
     }
   }
-  return ret;
+  return [ret, allData];
 }
 
 /**
