@@ -84,10 +84,12 @@ export function formatDate(date: Date) {
 
 /**
  * 指定された日付の年月日時分を取得する
- * @param date
+ * @param input
  * @returns yyyy-MM-dd HH:mm形式の年月日時分
  */
-export function formatTime(date: Date) {
+export function formatTime(input?: string) {
+  if (!input) return "";
+  const date = new Date(input);
   const dateStr = formatDate(date);
   const hour = date.getHours();
   const minutes = date.getMinutes();
