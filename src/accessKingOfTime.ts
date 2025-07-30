@@ -45,7 +45,7 @@ export async function getAllWorkingData() {
   const csvStr = json2csv(ret);
 
   await writeFile("allWorkings.csv", csvStr);
-  await postCsv("allWorkings", csvStr);
+  // await postCsv("allWorkings", csvStr);
 }
 
 /**
@@ -56,29 +56,29 @@ export async function doDl() {
   if (!checkHour()) return console.log("利用可能時間外です");
 
   const divisions = await fetchDivisions();
+  console.log(divisions);
   await postCsv("divisions", json2csv(divisions));
 
-  // // 修正申請リストを取得する
-  // const { lackingRecord, allTimerecord } = await createTimeRecordJson(
-  //   divisions
-  // );
-  // await postCsv("lackingRecord", lackingRecord);
-  // await postCsv("allTimeRecord", allTimerecord);
+  // 修正申請リストを取得する
+  const { lackingRecord, allTimerecord } = await createTimeRecordJson(
+    divisions
+  );
+  await postCsv("lackingRecord", lackingRecord);
+  await postCsv("allTimeRecord", allTimerecord);
 
-  // const employees = await fetchEmployee();
-  // await postCsv("employees", json2csv(employees));
+  const employees = await fetchEmployee();
+  await postCsv("employees", json2csv(employees));
 
   const { start, end } = getWorkingTerm();
-  console.log({ start, end });
   const allWorkings = await createAllWorkings(divisions, start, end);
   await postCsv("allWorkings", allWorkings);
 
-  // const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
-  // const { allHolidays, yoteiHolidays } = await createHolidays(
-  //   employeeTypeCodeList
-  // );
-  // await postCsv("yoteiHolidays", yoteiHolidays);
-  // await postCsv("allHolidays", allHolidays);
+  const employeeTypeCodeList = getEmployeeTypeCodeList(employees);
+  const { allHolidays, yoteiHolidays } = await createHolidays(
+    employeeTypeCodeList
+  );
+  await postCsv("yoteiHolidays", yoteiHolidays);
+  await postCsv("allHolidays", allHolidays);
 
   return true;
 }
@@ -121,6 +121,7 @@ function getAllTerms() {
     });
     current.setMonth(current.getMonth() + 1, 1);
   }
+  console.log("getAllTerms", array);
   return array;
 }
 
@@ -186,6 +187,9 @@ export async function doFetch(url: string) {
   });
   if (result.status === 400)
     console.error("doFetch error", url, result.status, await result.text());
-  if (result.status !== 200) return [];
+  if (result.status !== 200) {
+    console.error(result.status, result.statusText);
+    return [];
+  }
   return await result.json();
 }

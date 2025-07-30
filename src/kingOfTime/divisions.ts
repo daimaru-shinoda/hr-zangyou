@@ -16,7 +16,6 @@ export async function fetchDivisions() {
 export function parseDivisionsJson(json: any[]) {
   const ret = [];
   for (const { code, name } of json) {
-    // 使用不可の場合は飛ばす
     ret.push({
       所属コード: code,
       所属名: name,
